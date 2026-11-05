@@ -1,0 +1,4 @@
+Error: Failed to parse from stdin input to Message using serde
+
+Caused by:
+    unknown variant `init`, expected `echo` or `echo_ok` at line 1 column 52
