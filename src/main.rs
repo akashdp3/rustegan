@@ -1,39 +1,74 @@
 mod protocol;
 
-use std::io::{self, Write};
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+};
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 
-use crate::protocol::Message;
+use crate::protocol::{Kind, Message, MessageBody};
 
 fn main() -> anyhow::Result<()> {
-    let mut stdin = io::stdin().lines();
+    let input_lines = io::stdin().lines();
     let mut stdout = io::stdout().lock();
 
-    let input = stdin
-        .next()
-        .expect("No input given")
-        .context("Failed to get input from stdin")?;
-    let input: Message = serde_json::from_str(&input)
-        .context("Failed to parse from stdin input to Message using serde")?;
+    for line in input_lines {
+        let line = line.context("Failed to read input from STDIN")?;
+        let input: Message = serde_json::from_str(&line)
+            .context("Failed to parse from stdin input to Message using serde")?;
 
-    let output = echo(input).context("Failed to echo output")?;
-    let output =
-        serde_json::to_string(&output).context("Failed to parse from Message to String")?;
+        let output = echo(input).context("Failed to echo back")?;
 
-    stdout
-        .write_all(&output.as_bytes())
-        .context("Failed to write output to stdout")?;
+        match output {
+            Some(value) => {
+                let value = serde_json::to_string(&value).context("Failed to serialize output")?;
+                writeln!(stdout, "{value}")
+                    .context("Failed to write output to STDOUT with NEW LINE")?;
+            }
+            None => {
+                continue;
+            }
+        }
+
+        stdout
+            .flush()
+            .context("Failed to flush all content to destination from STDOUT")?;
+    }
 
     Ok(())
 }
 
-fn echo(input: Message) -> Result<Message> {
-    let output = Message {
-        src: input.dest,
-        dest: input.src,
-        body: input.body.with_type("echo_ok")?,
+fn echo(input: Message) -> anyhow::Result<Option<Message>> {
+    eprintln!("Input: {:?}", input);
+    let output = match input.body.kind {
+        Kind::Init => Some(Message {
+            src: input.dest,
+            dest: input.src,
+            body: MessageBody {
+                kind: Kind::InitOk,
+                id: None,
+                in_reply_to: input.body.id,
+                others: HashMap::new(),
+            },
+        }),
+        Kind::InitOk => {
+            anyhow::bail!("Unexpected init_ok type received")
+        }
+        Kind::Echo => Some(Message {
+            src: input.dest,
+            dest: input.src,
+            body: MessageBody {
+                kind: Kind::EchoOk,
+                id: input.body.id,
+                in_reply_to: input.body.id,
+                others: input.body.others.clone(),
+            },
+        }),
+        Kind::EchoOk => None,
     };
+
+    eprintln!("Output: {:?}", output);
 
     Ok(output)
 }

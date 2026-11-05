@@ -7,6 +7,8 @@ use serde_json::Value;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Kind {
+    Init,
+    InitOk,
     Echo,
     EchoOk,
 }
@@ -21,23 +23,20 @@ pub struct Message {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MessageBody {
     #[serde(rename = "type")]
-    kind: String,
+    pub kind: Kind,
+
     #[serde(rename = "msg_id")]
-    id: Option<usize>,
-    in_reply_to: Option<usize>,
+    pub id: Option<usize>,
+    pub in_reply_to: Option<usize>,
 
     #[serde(flatten)]
-    others: HashMap<String, Value>,
+    pub others: HashMap<String, Value>,
 }
 
 impl MessageBody {
-    pub fn with_type(&self, kind: &str) -> anyhow::Result<Self> {
-        // let kind: Kind = serde_json::from_str(kind).context("Failed to parse str to Kind")?;
-        // let kind: Kind = serde_json::from_value(serde_json::Value::String(kind.to_owned()))
-        //     .context("Failed to parse kind str to Kind enum")?;
-
+    pub fn with_type(&self, kind: Kind) -> anyhow::Result<Self> {
         Ok(Self {
-            kind: kind.to_owned(),
+            kind,
             id: self.id,
             in_reply_to: self.id,
             others: self.others.clone(),
