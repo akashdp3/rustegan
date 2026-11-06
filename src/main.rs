@@ -1,13 +1,12 @@
+mod node;
 mod protocol;
 
-use std::{
-    collections::HashMap,
-    io::{self, Write},
-};
+use std::io::{self, Write};
 
 use anyhow::Context;
 
-use crate::protocol::{Kind, Message, MessageBody};
+use crate::node::Node;
+use crate::protocol::{Message, MessageBody};
 
 fn main() -> anyhow::Result<()> {
     let input_lines = io::stdin().lines();
@@ -18,7 +17,8 @@ fn main() -> anyhow::Result<()> {
         let input: Message = serde_json::from_str(&line)
             .context("Failed to parse from stdin input to Message using serde")?;
 
-        let output = echo(input).context("Failed to echo back")?;
+        let mut node = Node::new();
+        let output = node.reply(input).context("Failed to reply to input")?;
 
         match output {
             Some(value) => {
@@ -39,36 +39,36 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn echo(input: Message) -> anyhow::Result<Option<Message>> {
-    eprintln!("Input: {:?}", input);
-    let output = match input.body.kind {
-        Kind::Init => Some(Message {
-            src: input.dest,
-            dest: input.src,
-            body: MessageBody {
-                kind: Kind::InitOk,
-                id: None,
-                in_reply_to: input.body.id,
-                others: HashMap::new(),
-            },
-        }),
-        Kind::InitOk => {
-            anyhow::bail!("Unexpected init_ok type received")
-        }
-        Kind::Echo => Some(Message {
-            src: input.dest,
-            dest: input.src,
-            body: MessageBody {
-                kind: Kind::EchoOk,
-                id: input.body.id,
-                in_reply_to: input.body.id,
-                others: input.body.others.clone(),
-            },
-        }),
-        Kind::EchoOk => None,
-    };
-
-    eprintln!("Output: {:?}", output);
-
-    Ok(output)
-}
+// fn echo(input: Message) -> anyhow::Result<Option<Message>> {
+//     eprintln!("Input: {:?}", input);
+//     let output = match input.body.kind {
+//         Kind::Init => Some(Message {
+//             src: input.dest,
+//             dest: input.src,
+//             body: MessageBody {
+//                 kind: Kind::InitOk,
+//                 id: None,
+//                 in_reply_to: input.body.id,
+//                 others: HashMap::new(),
+//             },
+//         }),
+//         Kind::InitOk => {
+//             anyhow::bail!("Unexpected init_ok type received")
+//         }
+//         Kind::Echo => Some(Message {
+//             src: input.dest,
+//             dest: input.src,
+//             body: MessageBody {
+//                 kind: Kind::EchoOk,
+//                 id: input.body.id,
+//                 in_reply_to: input.body.id,
+//                 others: input.body.others.clone(),
+//             },
+//         }),
+//         Kind::EchoOk => None,
+//     };
+//
+//     eprintln!("Output: {:?}", output);
+//
+//     Ok(output)
+// }
