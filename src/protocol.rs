@@ -1,15 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Kind {
-    Init,
-    InitOk,
-    Echo,
-    EchoOk,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Message {
     pub src: String,
     pub dest: String,

@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use anyhow::Context;
 
 use crate::node::Node;
-use crate::protocol::{Message, MessageBody};
+use crate::protocol::Message;
 
 fn main() -> anyhow::Result<()> {
     let input_lines = io::stdin().lines();
@@ -38,37 +38,3 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-// fn echo(input: Message) -> anyhow::Result<Option<Message>> {
-//     eprintln!("Input: {:?}", input);
-//     let output = match input.body.kind {
-//         Kind::Init => Some(Message {
-//             src: input.dest,
-//             dest: input.src,
-//             body: MessageBody {
-//                 kind: Kind::InitOk,
-//                 id: None,
-//                 in_reply_to: input.body.id,
-//                 others: HashMap::new(),
-//             },
-//         }),
-//         Kind::InitOk => {
-//             anyhow::bail!("Unexpected init_ok type received")
-//         }
-//         Kind::Echo => Some(Message {
-//             src: input.dest,
-//             dest: input.src,
-//             body: MessageBody {
-//                 kind: Kind::EchoOk,
-//                 id: input.body.id,
-//                 in_reply_to: input.body.id,
-//                 others: input.body.others.clone(),
-//             },
-//         }),
-//         Kind::EchoOk => None,
-//     };
-//
-//     eprintln!("Output: {:?}", output);
-//
-//     Ok(output)
-// }
