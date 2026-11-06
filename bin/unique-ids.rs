@@ -3,6 +3,7 @@ use rustegan::protocol::Message;
 
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
@@ -16,18 +17,22 @@ pub enum MessageBody {
     InitOk {
         in_reply_to: usize,
     },
-    Generate {},
+    Generate {
+        msg_id: usize,
+    },
     GenerateOk {
         id: String,
+        msg_id: usize,
+        in_reply_to: usize,
     },
 }
 
-struct EchoNode {
+struct UniqueNode {
     id: Option<String>,
     next_msg_id: usize,
 }
 
-impl Node<MessageBody> for EchoNode {
+impl Node<MessageBody> for UniqueNode {
     fn reply(
         &mut self,
         input: Message<MessageBody>,
@@ -42,20 +47,24 @@ impl Node<MessageBody> for EchoNode {
                 })
             }
 
-            MessageBody::Generate { .. } => {
+            MessageBody::Generate { msg_id } => {
                 let reply_id = self.next_msg_id;
                 self.next_msg_id += 1;
+                // let unique_id = Uuid::new_v4();
 
-                let unique_id = match self.id {
-                    Some(ref id) => {
-                        format!("{}-{}", id, self.next_msg_id)
-                    }
-                    None => {
-                        return Ok(None);
-                    }
-                };
+                // let unique_id = match self.id {
+                //     Some(ref id) => format!("{}-{}", id, self.next_msg_id),
+                //     None => Uuid::new_v4().to_string(),
+                // };
 
-                Some(MessageBody::GenerateOk { id: unique_id })
+                let node_id = self.id.clone().expect("Node ID cannot be NONE");
+                let unique_id = format!("{}-{}", node_id, reply_id);
+
+                Some(MessageBody::GenerateOk {
+                    msg_id,
+                    in_reply_to: msg_id,
+                    id: unique_id.to_string(),
+                })
             }
 
             MessageBody::GenerateOk { .. } | MessageBody::InitOk { .. } => None,
@@ -75,7 +84,7 @@ impl Node<MessageBody> for EchoNode {
 fn main() -> anyhow::Result<()> {
     use std::io::{self, Write};
 
-    let mut node = EchoNode {
+    let mut node = UniqueNode {
         id: None,
         next_msg_id: 0,
     };
@@ -104,3 +113,11 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+// {
+//   "type":     "init",
+//   "msg_id":   1,
+//   "node_id":  "n3",
+//   "node_ids": ["n1", "n2", "n3"]
+// }
+// {"src": "c1", "dest": "n1", "body": { "type": "init","msg_id":  1, "node_id":  "n3", "node_ids": ["n1", "n2", "n3"] }}
+// {"src": "c1", "dest": "n1", "body": { "type": "generate" }}
