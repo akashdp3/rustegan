@@ -1,9 +1,12 @@
 use rustegan::node::Node;
 use rustegan::protocol::Message;
 
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
 pub enum MessageBody {
     Init {
         msg_id: usize,
@@ -81,11 +84,22 @@ fn main() -> anyhow::Result<()> {
     for line in io::stdin().lines() {
         let input: Message<MessageBody> = serde_json::from_str(&line?)?;
 
-        if let Some(output) = node.reply(input)? {
-            serde_json::to_writer(&mut stdout, &output)?;
-            writeln!(stdout)?;
-            stdout.flush()?;
+        let output = node.reply(input).context("Failed to reply to input")?;
+
+        match output {
+            Some(value) => {
+                let value = serde_json::to_string(&value).context("Failed to serialize output")?;
+                writeln!(stdout, "{value}")
+                    .context("Failed to write output to STDOUT with NEW LINE")?;
+            }
+            None => {
+                continue;
+            }
         }
+
+        stdout
+            .flush()
+            .context("Failed to flush all content to destination from STDOUT")?;
     }
 
     Ok(())

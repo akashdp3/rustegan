@@ -11,3 +11,7 @@ serde_json = "1.0.154"
 [[bin]]
 name = "echo"
 path = "bin/echo.rs"
+
+[[bin]]
+name = "unique-ids"
+path = "bin/unique-ids.rs"
