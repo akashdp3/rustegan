@@ -10,4 +10,4 @@ serde_json = "1.0.154"
 
 [[bin]]
 name = "echo"
-path = "src/main.rs"
+path = "bin/echo.rs"
